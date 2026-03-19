@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Velocity Rush</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      color: #eef6ff;
+      background:
+        radial-gradient(circle at top, rgba(68, 197, 255, 0.18), transparent 30%),
+        linear-gradient(180deg, #08101d, #12243e 55%, #09101b);
+    }
+    .app {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 16px;
+      padding: 16px;
+      min-height: 100vh;
+    }
+    .panel {
+      background: rgba(8, 17, 31, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 18px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
+    }
+    h1, h2, h3 { margin: 0 0 10px; }
+    p { color: #b9cde3; line-height: 1.45; }
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .stat {
+      background: rgba(255,255,255,0.06);
+      border-radius: 14px;
+      padding: 12px;
+    }
+    .mini {
+      display: block;
+      font-size: 12px;
+      color: #8ea7c0;
+      margin-bottom: 6px;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: calc(100vh - 74px);
+      min-height: 520px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: #0c1627;
+    }
+    .game-shell {
+      position: relative;
+    }
+    .btn, .level-btn {
+      width: 100%;
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 14px;
+      cursor: pointer;
+      font-weight: 700;
+      color: #04111d;
+      background: linear-gradient(135deg, #3dd6ff, #1a8dff);
+      margin-top: 10px;
+    }
+    .btn.secondary, .level-btn {
+      background: rgba(255,255,255,0.08);
+      color: #eef6ff;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .menu-page { display: none; }
+    .menu-page.active { display: block; }
+    .levels {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .level-btn.active {
+      background: linear-gradient(135deg, #3dd6ff, #1a8dff);
+      color: #04111d;
+      border: 0;
+    }
+    .tag {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(61, 214, 255, 0.12);
+      color: #8fdfff;
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+    .help {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .hidden { display: none; }
+    .touch-controls {
+      display: none;
+      margin-top: 12px;
+      gap: 10px;
+    }
+    .touch-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .touch-btn {
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.08);
+      color: #eef6ff;
+      min-height: 58px;
+      font-size: 16px;
+      font-weight: 700;
+      touch-action: manipulation;
+    }
+    .floating-touch {
+      display: none;
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .pad-side {
+      position: absolute;
+      bottom: 18px;
+      display: grid;
+      gap: 10px;
+      pointer-events: auto;
+    }
+    .pad-left { left: 14px; grid-template-columns: repeat(2, 72px); }
+    .pad-right { right: 14px; grid-template-columns: repeat(2, 72px); }
+    .pad-btn {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(8,17,31,0.44);
+      color: #eef6ff;
+      backdrop-filter: blur(10px);
+      font-size: 14px;
+      font-weight: 700;
+      pointer-events: auto;
+      touch-action: manipulation;
+    }
+    .mobile-topbar {
+      display: none;
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+    .mobile-chip {
+      pointer-events: auto;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(8,17,31,0.45);
+      backdrop-filter: blur(10px);
+      color: #eef6ff;
+      font-size: 13px;
+    }
+    @media (max-width: 980px) {
+      .app { grid-template-columns: 1fr; }
+      canvas { height: 68vh; }
+      .hud { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 640px) {
+      .levels, .hud { grid-template-columns: 1fr; }
+      .touch-controls { display: none; }
+      .floating-touch, .mobile-topbar { display: flex; }
+      canvas { height: 64vh; min-height: 420px; }
+      .panel { padding: 14px; }
+      .hud { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="panel">
+      <div id="pageStart" class="menu-page active">
+        <div class="tag">Start Page</div>
+        <h1>Velocity Rush</h1>
+        <p>Drive on a straight endless highway. Start from the splash screen, then choose between Endless Mode and Classic Mode.</p>
+        <button id="goModePage" class="btn">Start</button>
+      </div>
+
+      <div id="pageMode" class="menu-page">
+        <div class="tag">Mode Select</div>
+        <h2>Choose Your Mode</h2>
+        <p>Classic Mode gives you 10 levels from easy to hard. Endless Mode has no levels and keeps increasing speed slowly for a more realistic challenge.</p>
+        <button id="endlessModeBtn" class="btn">Endless Mode</button>
+        <button id="classicModeBtn" class="btn secondary">Classic Mode</button>
+
+        <div id="classicPanel" class="hidden">
+          <h3 style="margin-top:16px;">Classic Levels</h3>
+          <p id="levelInfo">Level 1 selected</p>
+          <div id="levels" class="levels"></div>
+        </div>
+
+        <button id="playSelected" class="btn">Play Selected Mode</button>
+      </div>
+
+      <div class="help">
+        <p><strong>Controls:</strong> Left and Right to change lane, Up to accelerate, Down to brake, Shift boost, P pause, Enter restart current mode.</p>
+        <p id="careerText"></p>
+      </div>
+      <div class="touch-controls" id="touchControls">
+        <div class="touch-row">
+          <button class="touch-btn" data-touch="left">Left</button>
+          <button class="touch-btn" data-touch="right">Right</button>
+        </div>
+        <div class="touch-row">
+          <button class="touch-btn" data-touch="up">Accelerate</button>
+          <button class="touch-btn" data-touch="down">Brake</button>
+        </div>
+        <div class="touch-row">
+          <button class="touch-btn" data-touch="boost">Boost</button>
+          <button class="touch-btn" data-touch="restart">Restart</button>
+        </div>
+      </div>
+    </aside>
+
+    <main>
+      <section class="hud">
+        <div class="stat"><span class="mini">Mode</span><strong id="hudMode">Menu</strong></div>
+        <div class="stat"><span class="mini">Level</span><strong id="hudLevel">-</strong></div>
+        <div class="stat"><span class="mini">Distance</span><strong id="hudDistance">0 m</strong></div>
+        <div class="stat"><span class="mini">Speed</span><strong id="hudSpeed">0 km/h</strong></div>
+      </section>
+      <div class="game-shell">
+        <canvas id="game" width="1280" height="720"></canvas>
+        <div class="mobile-topbar" id="mobileTopbar">
+          <button class="mobile-chip" id="fullscreenBtn">Fullscreen</button>
+          <div class="mobile-chip" id="mobileHint">Swipe or tap to steer</div>
+        </div>
+        <div class="floating-touch" id="floatingTouch">
+          <div class="pad-side pad-left">
+            <button class="pad-btn" data-touch="left">Left</button>
+            <button class="pad-btn" data-touch="right">Right</button>
+          </div>
+          <div class="pad-side pad-right">
+            <button class="pad-btn" data-touch="up">Gas</button>
+            <button class="pad-btn" data-touch="down">Brake</button>
+            <button class="pad-btn" data-touch="boost">Boost</button>
+            <button class="pad-btn" data-touch="restart">Retry</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const ui = {
+      pageStart: document.getElementById("pageStart"),
+      pageMode: document.getElementById("pageMode"),
+      goModePage: document.getElementById("goModePage"),
+      endlessModeBtn: document.getElementById("endlessModeBtn"),
+      classicModeBtn: document.getElementById("classicModeBtn"),
+      classicPanel: document.getElementById("classicPanel"),
+      levels: document.getElementById("levels"),
+      playSelected: document.getElementById("playSelected"),
+      levelInfo: document.getElementById("levelInfo"),
+      careerText: document.getElementById("careerText"),
+      touchControls: document.getElementById("touchControls"),
+      fullscreenBtn: document.getElementById("fullscreenBtn"),
+      mobileHint: document.getElementById("mobileHint"),
+      hudMode: document.getElementById("hudMode"),
+      hudLevel: document.getElementById("hudLevel"),
+      hudDistance: document.getElementById("hudDistance"),
+      hudSpeed: document.getElementById("hudSpeed")
+    };
+
+    const keys = new Set();
+    const touchState = {
+      left: false,
+      right: false,
+      up: false,
+      down: false,
+      boost: false
+    };
+    let swipeStartX = null;
+    const storageKey = "velocity-rush-straight-save";
+    const career = JSON.parse(localStorage.getItem(storageKey) || '{"bestEndless":0,"classicUnlocked":1,"wins":0}');
+
+    const levels = Array.from({ length: 10 }, (_, i) => ({
+      id: i + 1,
+      targetDistance: 900 + i * 350,
+      traffic: 2 + Math.floor(i / 2),
+      baseSpeed: 118 + i * 10,
+      roadGrip: Math.max(0.72, 1 - i * 0.025),
+      label: i < 3 ? "Easy" : i < 6 ? "Medium" : i < 8 ? "Hard" : "Extreme"
+    }));
+
+    let selectedMode = "endless";
+    let selectedLevel = 1;
+    let state = {};
+
+    function showPage(name) {
+      ui.pageStart.classList.toggle("active", name === "start");
+      ui.pageMode.classList.toggle("active", name === "mode");
+    }
+
+    function saveCareer() {
+      localStorage.setItem(storageKey, JSON.stringify(career));
+    }
+
+    function renderCareer() {
+      ui.careerText.textContent = `Best endless: ${Math.round(career.bestEndless)} m | Classic unlocked: ${career.classicUnlocked}/10 | Classic wins: ${career.wins}`;
+    }
+
+    function renderLevelButtons() {
+      ui.levels.innerHTML = levels.map(level => {
+        const locked = level.id > career.classicUnlocked;
+        return `<button class="level-btn ${selectedLevel === level.id ? "active" : ""}" data-level="${level.id}" ${locked ? "disabled" : ""}>Level ${level.id}<br>${level.label}</button>`;
+      }).join("");
+      Array.from(ui.levels.querySelectorAll("[data-level]")).forEach(button => {
+        button.addEventListener("click", () => {
+          selectedLevel = Number(button.dataset.level);
+          ui.levelInfo.textContent = `Level ${selectedLevel}: ${levels[selectedLevel - 1].label} difficulty`;
+          renderLevelButtons();
+        });
+      });
+    }
+
+    function laneX(lane) {
+      const center = canvas.width / 2;
+      const gap = 95;
+      return center + (lane - 1.5) * gap;
+    }
+
+    function roadMetrics() {
+      return {
+        horizonY: 150,
+        roadBottomWidth: 760,
+        roadTopWidth: 120,
+        center: canvas.width / 2
+      };
+    }
+
+    function roadEdgeX(y, side) {
+      const { horizonY, roadBottomWidth, roadTopWidth, center } = roadMetrics();
+      const t = Math.max(0, Math.min(1, (y - horizonY) / (canvas.height - horizonY)));
+      const halfWidth = roadTopWidth / 2 + t * ((roadBottomWidth - roadTopWidth) / 2);
+      return side === "left" ? center - halfWidth : center + halfWidth;
+    }
+
+    function roadLaneCenterX(lane, y) {
+      const left = roadEdgeX(y, "left");
+      const right = roadEdgeX(y, "right");
+      const laneWidth = (right - left) / 4;
+      return left + laneWidth * (lane + 0.5);
+    }
+
+    function makeTraffic(count, baseSpeed) {
+      const cars = [];
+      for (let i = 0; i < count; i += 1) {
+        cars.push({
+          lane: Math.floor(Math.random() * 4),
+          y: -200 - i * 220,
+          speed: baseSpeed * (0.65 + Math.random() * 0.35),
+          color: ["#ff7a59", "#ffd166", "#8ff7a7", "#f8fafc", "#e879f9"][i % 5]
+        });
+      }
+      return cars;
+    }
+
+    function startGame() {
+      const level = levels[selectedLevel - 1];
+      const isEndless = selectedMode === "endless";
+      state = {
+        scene: "game",
+        paused: false,
+        mode: selectedMode,
+        level: selectedLevel,
+        distance: 0,
+        worldSpeed: isEndless ? 120 : level.baseSpeed,
+        finishDistance: isEndless ? Infinity : level.targetDistance,
+        roadGrip: isEndless ? 0.96 : level.roadGrip,
+        laneMarkOffset: 0,
+        countdown: 2.5,
+        flash: 0,
+        player: {
+          lane: 1,
+          x: roadLaneCenterX(1, canvas.height - 130),
+          y: canvas.height - 130,
+          speed: 0,
+          maxSpeed: isEndless ? 210 : level.baseSpeed + 60,
+          crashed: false
+        },
+        traffic: makeTraffic(isEndless ? 4 : level.traffic, isEndless ? 110 : level.baseSpeed * 0.92),
+        spawnTimer: 0,
+        over: false,
+        message: ""
+      };
+      updateHud();
+    }
+
+    function updateHud() {
+      ui.hudMode.textContent = state.scene === "game" ? (state.mode === "endless" ? "Endless" : "Classic") : "Menu";
+      ui.hudLevel.textContent = state.scene === "game" ? (state.mode === "classic" ? `Level ${state.level}` : "No Level") : "-";
+      ui.hudDistance.textContent = `${Math.round(state.distance || 0)} m`;
+      ui.hudSpeed.textContent = `${Math.round(state.player?.speed || 0)} km/h`;
+      if (ui.mobileHint) {
+        ui.mobileHint.textContent = state.scene === "game"
+          ? `${Math.round(state.player?.speed || 0)} km/h • ${Math.round(state.distance || 0)} m`
+          : "Swipe or tap to steer";
+      }
+    }
+
+    function resetToMenu() {
+      state = { scene: "menu" };
+      updateHud();
+    }
+
+    function movePlayer(dt) {
+      const player = state.player;
+      if (keys.has("ArrowUp") || touchState.up) player.speed += 110 * dt;
+      else player.speed -= 40 * dt;
+      if (keys.has("ArrowDown") || touchState.down) player.speed -= 120 * dt;
+      if (keys.has("Shift") || touchState.boost) player.speed += 90 * dt;
+
+      const maxSpeed = player.maxSpeed + (state.mode === "endless" ? Math.min(90, state.distance * 0.02) : 0);
+      player.speed = Math.max(0, Math.min(player.speed, maxSpeed));
+
+      if ((keys.has("ArrowLeft") || touchState.left) && player.lane > 0) {
+        player.lane -= 1;
+        keys.delete("ArrowLeft");
+        touchState.left = false;
+      }
+      if ((keys.has("ArrowRight") || touchState.right) && player.lane < 3) {
+        player.lane += 1;
+        keys.delete("ArrowRight");
+        touchState.right = false;
+      }
+
+      player.x += (roadLaneCenterX(player.lane, player.y) - player.x) * Math.min(1, dt * 10);
+    }
+
+    function updateTraffic(dt) {
+      const speedFactor = state.worldSpeed + state.player.speed * 0.55;
+      state.laneMarkOffset = (state.laneMarkOffset + speedFactor * dt) % 80;
+      state.spawnTimer += dt;
+
+      if (state.mode === "endless") {
+        state.worldSpeed += dt * 1.6;
+      }
+
+      state.traffic.forEach(car => {
+        car.y += speedFactor * dt - car.speed * dt * 0.35;
+        if (car.y > canvas.height + 120) {
+          car.y = -120 - Math.random() * 240;
+          car.lane = Math.floor(Math.random() * 4);
+          car.speed = state.worldSpeed * (0.6 + Math.random() * 0.4);
+        }
+      });
+
+      if (state.mode === "endless" && state.spawnTimer > 4.5 && state.traffic.length < 8) {
+        state.spawnTimer = 0;
+        state.traffic.push({
+          lane: Math.floor(Math.random() * 4),
+          y: -160,
+          speed: state.worldSpeed * 0.75,
+          color: ["#ff7a59", "#ffd166", "#8ff7a7", "#f8fafc"][Math.floor(Math.random() * 4)]
+        });
+      }
+    }
+
+    function checkCollisions() {
+      const p = state.player;
+      const px = p.x;
+      const py = p.y;
+      for (const car of state.traffic) {
+        const cx = roadLaneCenterX(car.lane, car.y);
+        const cy = car.y;
+        const scale = 0.42 + (car.y / canvas.height) * 0.92;
+        if (Math.abs(px - cx) < 26 + scale * 18 && Math.abs(py - cy) < 42 + scale * 14) {
+          p.speed *= 0.35;
+          state.over = true;
+          state.message = "Crash";
+          state.flash = 0.5;
+          break;
+        }
+      }
+    }
+
+    function handleWinLose() {
+      if (state.over) {
+        if (state.mode === "endless") {
+          career.bestEndless = Math.max(career.bestEndless, state.distance);
+        }
+        saveCareer();
+        renderCareer();
+        return;
+      }
+
+      if (state.mode === "classic" && state.distance >= state.finishDistance) {
+        state.over = true;
+        state.message = `Level ${state.level} Complete`;
+        career.wins += 1;
+        career.classicUnlocked = Math.min(10, Math.max(career.classicUnlocked, state.level + 1));
+        saveCareer();
+        renderCareer();
+        renderLevelButtons();
+      }
+    }
+
+    function update(dt) {
+      if (state.scene !== "game" || state.paused || state.over) return;
+      if (state.countdown > 0) {
+        state.countdown -= dt;
+        return;
+      }
+
+      movePlayer(dt);
+      updateTraffic(dt);
+      state.distance += (state.player.speed + state.worldSpeed) * dt * 0.48;
+      state.flash = Math.max(0, (state.flash || 0) - dt);
+      checkCollisions();
+      handleWinLose();
+      updateHud();
+    }
+
+    function drawSky() {
+      const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      g.addColorStop(0, "#4c89c7");
+      g.addColorStop(0.4, "#87c9ff");
+      g.addColorStop(0.72, "#d8efff");
+      g.addColorStop(1, "#eef7ff");
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "#fff7c2";
+      ctx.beginPath();
+      ctx.arc(1060, 110, 58, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#9abf76";
+      ctx.beginPath();
+      ctx.moveTo(0, 330);
+      ctx.lineTo(170, 250);
+      ctx.lineTo(290, 320);
+      ctx.lineTo(450, 235);
+      ctx.lineTo(600, 330);
+      ctx.lineTo(760, 220);
+      ctx.lineTo(920, 315);
+      ctx.lineTo(1110, 245);
+      ctx.lineTo(1280, 330);
+      ctx.lineTo(1280, canvas.height);
+      ctx.lineTo(0, canvas.height);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = "#76a45f";
+      ctx.fillRect(0, canvas.height * 0.58, canvas.width, canvas.height * 0.42);
+    }
+
+    function drawRoad() {
+      const { horizonY, roadBottomWidth, roadTopWidth, center } = roadMetrics();
+
+      ctx.fillStyle = "#74624e";
+      ctx.beginPath();
+      ctx.moveTo(center - roadTopWidth / 2 - 80, horizonY);
+      ctx.lineTo(center + roadTopWidth / 2 + 80, horizonY);
+      ctx.lineTo(center + roadBottomWidth / 2 + 170, canvas.height);
+      ctx.lineTo(center - roadBottomWidth / 2 - 170, canvas.height);
+      ctx.closePath();
+      ctx.fill();
+
+      const asphalt = ctx.createLinearGradient(0, horizonY, 0, canvas.height);
+      asphalt.addColorStop(0, "#4b5158");
+      asphalt.addColorStop(0.5, "#323942");
+      asphalt.addColorStop(1, "#20262f");
+      ctx.fillStyle = asphalt;
+      ctx.beginPath();
+      ctx.moveTo(center - roadTopWidth / 2, horizonY);
+      ctx.lineTo(center + roadTopWidth / 2, horizonY);
+      ctx.lineTo(center + roadBottomWidth / 2, canvas.height);
+      ctx.lineTo(center - roadBottomWidth / 2, canvas.height);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(255,255,255,0.05)";
+      for (let i = 0; i < 24; i += 1) {
+        const y = horizonY + i * 26;
+        const left = roadEdgeX(y, "left");
+        const right = roadEdgeX(y, "right");
+        ctx.fillRect(left, y, right - left, 8);
+      }
+
+      ctx.strokeStyle = "#f8fafc";
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(center - roadTopWidth / 2, horizonY);
+      ctx.lineTo(center - roadBottomWidth / 2, canvas.height);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(center + roadTopWidth / 2, horizonY);
+      ctx.lineTo(center + roadBottomWidth / 2, canvas.height);
+      ctx.stroke();
+
+      for (let lane = 1; lane <= 3; lane += 1) {
+        for (let y = -80; y < canvas.height; y += 86) {
+          const yy = y + state.laneMarkOffset;
+          const nextY = yy + 46;
+          if (nextY < horizonY || yy > canvas.height) continue;
+          const x1 = roadLaneCenterX(lane - 0.5, yy);
+          const x2 = roadLaneCenterX(lane - 0.5, nextY);
+          const t1 = Math.max(0, Math.min(1, (yy - horizonY) / (canvas.height - horizonY)));
+          const t2 = Math.max(0, Math.min(1, (nextY - horizonY) / (canvas.height - horizonY)));
+          const w1 = 2 + t1 * 6;
+          const w2 = 3 + t2 * 8;
+          ctx.fillStyle = "#f8fafc";
+          ctx.beginPath();
+          ctx.moveTo(x1 - w1, yy);
+          ctx.lineTo(x1 + w1, yy);
+          ctx.lineTo(x2 + w2, nextY);
+          ctx.lineTo(x2 - w2, nextY);
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
+
+      for (let y = horizonY; y < canvas.height; y += 32) {
+        const left = roadEdgeX(y, "left") - 22;
+        const right = roadEdgeX(y, "right") + 12;
+        const size = 3 + ((y - horizonY) / (canvas.height - horizonY)) * 5;
+        ctx.fillStyle = "#f7d56a";
+        ctx.fillRect(left, y, size, size * 1.3);
+        ctx.fillRect(right, y, size, size * 1.3);
+      }
+    }
+
+    function trafficScreenX(lane, y) {
+      return roadLaneCenterX(lane, y);
+    }
+
+    function drawCar(x, y, scale, color) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+      ctx.fillStyle = "rgba(0,0,0,0.22)";
+      ctx.beginPath();
+      ctx.ellipse(0, 30, 22, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      const body = ctx.createLinearGradient(0, -32, 0, 34);
+      body.addColorStop(0, "#ffffff");
+      body.addColorStop(0.18, color);
+      body.addColorStop(0.65, color);
+      body.addColorStop(1, "#0e1724");
+      ctx.fillStyle = body;
+      ctx.beginPath();
+      ctx.moveTo(0, -38);
+      ctx.bezierCurveTo(18, -34, 24, -8, 24, 16);
+      ctx.bezierCurveTo(24, 32, 12, 40, 0, 42);
+      ctx.bezierCurveTo(-12, 40, -24, 32, -24, 16);
+      ctx.bezierCurveTo(-24, -8, -18, -34, 0, -38);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(255,255,255,0.28)";
+      ctx.beginPath();
+      ctx.moveTo(0, -34);
+      ctx.lineTo(10, -12);
+      ctx.lineTo(7, 26);
+      ctx.lineTo(0, 34);
+      ctx.lineTo(-7, 26);
+      ctx.lineTo(-10, -12);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = "#a8d7ff";
+      ctx.beginPath();
+      ctx.moveTo(0, -22);
+      ctx.lineTo(9, -8);
+      ctx.lineTo(6, 6);
+      ctx.lineTo(-6, 6);
+      ctx.lineTo(-9, -8);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(-26, -18, 7, 16);
+      ctx.fillRect(19, -18, 7, 16);
+      ctx.fillRect(-26, 10, 7, 16);
+      ctx.fillRect(19, 10, 7, 16);
+
+      ctx.fillStyle = "#ffe08a";
+      ctx.fillRect(-12, -31, 7, 4);
+      ctx.fillRect(5, -31, 7, 4);
+      ctx.fillStyle = "#ff5f56";
+      ctx.fillRect(-12, 31, 7, 4);
+      ctx.fillRect(5, 31, 7, 4);
+
+      ctx.strokeStyle = "rgba(255,255,255,0.45)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, -34);
+      ctx.lineTo(0, 34);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawTraffic() {
+      state.traffic.forEach(car => {
+        const scale = 0.42 + (car.y / canvas.height) * 0.92;
+        const x = trafficScreenX(car.lane, car.y);
+        drawCar(x, car.y, scale, car.color);
+      });
+    }
+
+    function drawPlayer() {
+      if (!state.player) return;
+      drawCar(state.player.x, state.player.y, 1.26, "#34d4ff");
+
+      if (!state.over) {
+        ctx.strokeStyle = "rgba(52,212,255,0.35)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(state.player.x, state.player.y - 60);
+        ctx.lineTo(state.player.x, state.player.y - 140);
+        ctx.stroke();
+      }
+    }
+
+    function drawMenuOverlay() {
+      ctx.fillStyle = "rgba(6,11,20,0.42)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#eef6ff";
+      ctx.textAlign = "center";
+      ctx.font = "56px Arial";
+      ctx.fillText("Velocity Rush", canvas.width / 2, canvas.height / 2 - 20);
+      ctx.font = "24px Arial";
+      ctx.fillText("Use the left panel to start and choose a mode", canvas.width / 2, canvas.height / 2 + 28);
+      ctx.font = "20px Arial";
+      ctx.fillText("Drive through traffic on a realistic straight highway", canvas.width / 2, canvas.height / 2 + 64);
+    }
+
+    function drawGameOverlay() {
+      if (state.countdown > 0) {
+        ctx.fillStyle = "rgba(0,0,0,0.24)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#ffffff";
+        ctx.textAlign = "center";
+        ctx.font = "76px Arial";
+        ctx.fillText(Math.ceil(state.countdown), canvas.width / 2, canvas.height / 2);
+      }
+      if (state.over) {
+        ctx.fillStyle = "rgba(0,0,0,0.34)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#ffffff";
+        ctx.textAlign = "center";
+        ctx.font = "54px Arial";
+        ctx.fillText(state.message, canvas.width / 2, canvas.height / 2 - 10);
+        ctx.font = "24px Arial";
+        ctx.fillText(window.innerWidth <= 640 ? "Tap Retry or press Enter to restart" : "Press Enter to restart this mode", canvas.width / 2, canvas.height / 2 + 34);
+      }
+      if (state.flash > 0) {
+        ctx.fillStyle = `rgba(255,80,80,${state.flash * 0.35})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+
+    function drawRoadside() {
+      for (let i = 0; i < 15; i += 1) {
+        const y = 190 + ((i * 84 + state.laneMarkOffset * 1.6) % 760);
+        const leftRoad = roadEdgeX(y, "left");
+        const rightRoad = roadEdgeX(y, "right");
+        const t = Math.max(0, Math.min(1, y / canvas.height));
+        const poleH = 18 + t * 48;
+        const treeR = 10 + t * 18;
+
+        ctx.fillStyle = "#8d8d8d";
+        ctx.fillRect(leftRoad - 42 - t * 28, y - poleH, 4 + t * 2, poleH);
+        ctx.fillRect(rightRoad + 38 + t * 28, y - poleH, 4 + t * 2, poleH);
+
+        ctx.fillStyle = "#336d36";
+        ctx.beginPath();
+        ctx.arc(leftRoad - 65 - t * 44, y - poleH + 4, treeR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(rightRoad + 62 + t * 44, y - poleH + 4, treeR, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function draw() {
+      drawSky();
+      if (state.scene === "game") {
+        drawRoad();
+        drawRoadside();
+        drawTraffic();
+        drawPlayer();
+        drawGameOverlay();
+      } else {
+        drawRoad();
+        drawRoadside();
+        drawMenuOverlay();
+      }
+    }
+
+    let last = 0;
+    function loop(ts) {
+      const dt = Math.min(0.032, (ts - last) / 1000 || 0.016);
+      last = ts;
+      update(dt);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    ui.goModePage.addEventListener("click", () => showPage("mode"));
+    ui.endlessModeBtn.addEventListener("click", () => {
+      selectedMode = "endless";
+      ui.classicPanel.classList.add("hidden");
+    });
+    ui.classicModeBtn.addEventListener("click", () => {
+      selectedMode = "classic";
+      ui.classicPanel.classList.remove("hidden");
+    });
+    ui.playSelected.addEventListener("click", startGame);
+
+    Array.from(document.querySelectorAll("[data-touch]")).forEach(button => {
+      const action = button.dataset.touch;
+      const press = event => {
+        event.preventDefault();
+        if (action === "restart") {
+          if (state.scene === "game") startGame();
+          return;
+        }
+        touchState[action] = true;
+      };
+      const release = event => {
+        event.preventDefault();
+        if (action in touchState) touchState[action] = false;
+      };
+      button.addEventListener("touchstart", press, { passive: false });
+      button.addEventListener("touchend", release, { passive: false });
+      button.addEventListener("touchcancel", release, { passive: false });
+      button.addEventListener("mousedown", press);
+      button.addEventListener("mouseup", release);
+      button.addEventListener("mouseleave", release);
+    });
+
+    canvas.addEventListener("touchstart", event => {
+      if (!event.touches.length) return;
+      swipeStartX = event.touches[0].clientX;
+    }, { passive: true });
+
+    canvas.addEventListener("touchmove", event => {
+      if (swipeStartX == null || state.scene !== "game" || !event.touches.length) return;
+      const currentX = event.touches[0].clientX;
+      const delta = currentX - swipeStartX;
+      if (delta > 36) {
+        touchState.right = true;
+        swipeStartX = currentX;
+      } else if (delta < -36) {
+        touchState.left = true;
+        swipeStartX = currentX;
+      }
+    }, { passive: true });
+
+    canvas.addEventListener("touchend", () => {
+      swipeStartX = null;
+    }, { passive: true });
+
+    if (ui.fullscreenBtn) {
+      ui.fullscreenBtn.addEventListener("click", async () => {
+        const root = document.documentElement;
+        try {
+          if (!document.fullscreenElement && root.requestFullscreen) {
+            await root.requestFullscreen();
+          }
+        } catch {}
+      });
+    }
+
+    document.addEventListener("keydown", event => {
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Shift"].includes(event.key)) {
+        event.preventDefault();
+      }
+      if (event.key === "p" && state.scene === "game") {
+        state.paused = !state.paused;
+      }
+      if (event.key === "Enter" && state.scene === "game") {
+        startGame();
+      }
+      keys.add(event.key);
+    });
+
+    document.addEventListener("keyup", event => {
+      keys.delete(event.key);
+    });
+
+    renderCareer();
+    renderLevelButtons();
+    resetToMenu();
+    showPage("start");
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
